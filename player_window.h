@@ -54,6 +54,8 @@ protected:
   void on_button_rewind();
   void on_button_forward();
   void on_button_open();
+  void on_button_full_screen();
+  void on_button_unfull_screen();
   bool on_scale_value_changed(Gtk::ScrollType type, double value);
   bool on_timeout();
 
@@ -70,7 +72,9 @@ protected:
   Gtk::Button m_stop_button;
   Gtk::Button m_rewind_button;
   Gtk::Button m_forward_button;
-  Gtk::Button m_open_button;
+  Gtk::Button m_open_button; 
+  Gtk::Button m_full_screen_button;
+  Gtk::Button m_unfull_screen_button;
 
   Glib::RefPtr<Gst::PlayBin> m_playbin;
   sigc::connection m_timeout_connection;

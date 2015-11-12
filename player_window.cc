@@ -45,14 +45,18 @@
 PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
 : m_vbox(false, 6),
   m_progress_label("000:00:00.000000000 / 000:00:00.000000000"),
+  
   m_play_button(Gtk::Stock::MEDIA_PLAY),
   m_pause_button(Gtk::Stock::MEDIA_PAUSE),
   m_stop_button(Gtk::Stock::MEDIA_STOP),
   m_rewind_button(Gtk::Stock::MEDIA_REWIND),
   m_forward_button(Gtk::Stock::MEDIA_FORWARD),
-  m_open_button(Gtk::Stock::OPEN)
+  m_open_button(Gtk::Stock::OPEN),
+  m_full_screen_button(Gtk::Stock::FULLSCREEN),
+  m_unfull_screen_button(Gtk::Stock::LEAVE_FULLSCREEN)
+ 
 {
-  set_title("gstreamermm Media Player Example");
+  set_title("Audio/Video Player ");
 
   add(m_vbox);
   m_vbox.pack_start(m_video_area, Gtk::PACK_EXPAND_WIDGET);
@@ -73,6 +77,8 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_button_box.pack_start(m_rewind_button);
   m_button_box.pack_start(m_forward_button);
   m_button_box.pack_start(m_open_button);
+  m_button_box.pack_start(m_full_screen_button);
+  m_button_box.pack_start(m_unfull_screen_button);
 
   m_play_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_play));
@@ -86,6 +92,10 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
                       &PlayerWindow::on_button_forward));
   m_open_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_open));
+  m_full_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
+                      &PlayerWindow::on_button_full_screen));
+  m_unfull_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
+                      &PlayerWindow::on_button_unfull_screen));
 
   m_video_area.signal_realize().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_video_area_realize));
@@ -112,7 +122,9 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_stop_button.set_sensitive(false);
   m_rewind_button.set_sensitive(false);
   m_forward_button.set_sensitive(false);
-
+  m_full_screen_button.set_sensitive(false);
+  m_unfull_screen_button.set_sensitive(false);
+  
   m_playbin = playbin;
 
   m_playbin->signal_video_changed().connect(
@@ -120,6 +132,8 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
 
   show_all_children();
   m_pause_button.hide();
+  m_unfull_screen_button.hide();
+
 }
 
 void PlayerWindow::on_video_area_realize()
@@ -228,8 +242,8 @@ Gst::PadProbeReturn PlayerWindow::on_video_pad_got_buffer(const Glib::RefPtr<Gst
 
   // Resize to minimum when first playing by making size
   // smallest then resizing according to video new size:
-  resize(1, 1);
-  check_resize();
+  //resize(1, 1);
+  //check_resize();
 
   pad->remove_probe(m_pad_probe_id);
   m_pad_probe_id = 0; // Clear probe id to indicate that it has been removed
@@ -246,6 +260,7 @@ void PlayerWindow::on_button_play()
   m_stop_button.set_sensitive();
   m_rewind_button.set_sensitive();
   m_forward_button.set_sensitive();
+  m_full_screen_button.set_sensitive();
   m_open_button.set_sensitive(false);
 
   m_play_button.hide();
@@ -264,7 +279,7 @@ void PlayerWindow::on_button_pause()
 {
   m_play_button.set_sensitive();
   m_pause_button.set_sensitive(false);
-
+  m_full_screen_button.set_sensitive();
   m_pause_button.hide();
   m_play_button.show();
 
@@ -298,7 +313,25 @@ void PlayerWindow::on_button_stop()
   display_label_progress(0, m_duration);
   m_progress_scale.set_value(0);
 }
+void PlayerWindow::on_button_full_screen()
+{
+  //Change the UI appropriately:
+  m_full_screen_button.hide();
+  m_unfull_screen_button.show();
 
+  fullscreen();
+  m_unfull_screen_button.set_sensitive();
+  m_full_screen_button.set_sensitive(false);
+}
+void PlayerWindow::on_button_unfull_screen()
+{
+  //Change the UI appropriately:
+  //fullscreen();
+  m_unfull_screen_button.hide();
+  m_full_screen_button.show();
+  unfullscreen();
+  m_full_screen_button.set_sensitive();
+}
 bool PlayerWindow::on_scale_value_changed(Gtk::ScrollType /* type_not_used */, double value)
 {
   const gint64 newPos = gint64(value * m_duration);
