@@ -97,6 +97,8 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_unfull_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_unfull_screen));
 
+  m_video_area.set_size_request(640, 480);
+
   m_video_area.signal_realize().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_video_area_realize));
 
@@ -111,6 +113,9 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   // m_video_area can be set up for drawing at the exact appropriate time):
   bus->signal_sync_message().connect(
     sigc::mem_fun(*this, &PlayerWindow::on_bus_message_sync));
+
+  //We do not need to listen to the bus anymore
+  //bus->disable_sync_message_emission();
 
   // Add a bus watch to receive messages from the pipeline's bus:
   m_watch_id = bus->add_watch(
@@ -127,8 +132,9 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   
   m_playbin = playbin;
 
-  m_playbin->signal_video_changed().connect(
-    sigc::mem_fun(*this, &PlayerWindow::on_video_changed) );
+  //We chose to set the size of the player from the beginning due to a bug of how the overlay is handled
+  //m_playbin->signal_video_changed().connect(
+  //  sigc::mem_fun(*this, &PlayerWindow::on_video_changed) );
 
   show_all_children();
   m_pause_button.hide();
@@ -159,18 +165,22 @@ void PlayerWindow::on_bus_message_sync(
   if(message->get_message_type() != Gst::MESSAGE_ELEMENT)
     return;
 
-  if(!message->get_structure().has_name("prepare-xwindow-id"))
+  if(!message->get_structure().has_name("prepare-window-handle"))
      return;
 
-  Glib::RefPtr<Gst::Element> element =
-      Glib::RefPtr<Gst::Element>::cast_dynamic(message->get_source());
+   GstVideoOverlay *overlay = GST_VIDEO_OVERLAY(GST_MESSAGE_SRC(message->gobj()));
+   gst_video_overlay_set_window_handle(overlay,m_x_window_id);
+  
+  //Bug in gstreamermm 1.0
+  // Glib::RefPtr<Gst::Element> element =
+  //     Glib::RefPtr<Gst::Element>::cast_dynamic(message->get_source());
 
-  Glib::RefPtr< Gst::VideoOverlay > videooverlay = Glib::RefPtr<Gst::VideoOverlay>::cast_dynamic(element);
+  // Glib::RefPtr< Gst::VideoOverlay > videooverlay = Glib::RefPtr<Gst::VideoOverlay>::cast_dynamic(element);
 
-  if(videooverlay)
-  {
-      videooverlay->set_window_handle(m_x_window_id);
-  }
+  // if(videooverlay)
+  // {
+  //     videooverlay->set_window_handle(m_x_window_id);
+  // }
 }
 
 // This function is used to receive asynchronous messages from play_bin's bus
@@ -424,8 +434,8 @@ void PlayerWindow::on_button_open()
     m_playbin->property_uri() = chooser.get_uri();
 
     // Resize m_video_area and window to minimum when opening a file
-    m_video_area.set_size_request(0, 0);
-    resize(1, 1);
+    // m_video_area.set_size_request(0, 0);
+    // resize(1, 1);
 
     set_title( Glib::filename_display_basename(chooser.get_filename()) );
 
