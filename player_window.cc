@@ -53,8 +53,9 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_forward_button(Gtk::Stock::MEDIA_FORWARD),
   m_open_button(Gtk::Stock::OPEN),
   m_full_screen_button(Gtk::Stock::FULLSCREEN),
-  m_unfull_screen_button(Gtk::Stock::LEAVE_FULLSCREEN)
- 
+  m_unfull_screen_button(Gtk::Stock::LEAVE_FULLSCREEN),
+  m_mute_button("Mute"),
+  m_unmute_button("Unmute")  
 {
   set_title("Audio/Video Player ");
 
@@ -79,6 +80,9 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_button_box.pack_start(m_open_button);
   m_button_box.pack_start(m_full_screen_button);
   m_button_box.pack_start(m_unfull_screen_button);
+  m_button_box.pack_start(m_mute_button);
+  m_button_box.pack_start(m_unmute_button);
+
 
   m_play_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_play));
@@ -94,6 +98,10 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
                       &PlayerWindow::on_button_open));
   m_full_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_full_screen));
+  m_mute_button.signal_clicked().connect(sigc::mem_fun(*this,
+                      &PlayerWindow::on_button_mute));
+  m_unmute_button.signal_clicked().connect(sigc::mem_fun(*this,
+                      &PlayerWindow::on_button_unmute));
   m_unfull_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_unfull_screen));
 
@@ -129,6 +137,8 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_forward_button.set_sensitive(false);
   m_full_screen_button.set_sensitive(false);
   m_unfull_screen_button.set_sensitive(false);
+  m_mute_button.set_sensitive(false);
+  m_unmute_button.set_sensitive(false);
   
   m_playbin = playbin;
 
@@ -139,6 +149,8 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   show_all_children();
   m_pause_button.hide();
   m_unfull_screen_button.hide();
+  m_unmute_button.hide();
+
 
 }
 
@@ -271,6 +283,7 @@ void PlayerWindow::on_button_play()
   m_rewind_button.set_sensitive();
   m_forward_button.set_sensitive();
   m_full_screen_button.set_sensitive();
+  m_mute_button.set_sensitive();
   m_open_button.set_sensitive(false);
 
   m_play_button.hide();
@@ -289,7 +302,8 @@ void PlayerWindow::on_button_pause()
 {
   m_play_button.set_sensitive();
   m_pause_button.set_sensitive(false);
-  m_full_screen_button.set_sensitive();
+  m_mute_button.set_sensitive();
+
   m_pause_button.hide();
   m_play_button.show();
 
@@ -341,6 +355,27 @@ void PlayerWindow::on_button_unfull_screen()
   m_full_screen_button.show();
   unfullscreen();
   m_full_screen_button.set_sensitive();
+}
+void PlayerWindow::on_button_mute()
+{
+  //Change the UI appropriately:
+  m_mute_button.hide();
+  m_unmute_button.show();
+
+  //fullscreen();
+  m_playbin->set_mute(true);
+
+  m_unmute_button.set_sensitive();
+  m_mute_button.set_sensitive(false);
+}
+void PlayerWindow::on_button_unmute()
+{
+  //Change the UI appropriately:
+  //fullscreen();
+  m_unmute_button.hide();
+  m_mute_button.show();
+  m_playbin->set_mute(false);
+  m_mute_button.set_sensitive();
 }
 bool PlayerWindow::on_scale_value_changed(Gtk::ScrollType /* type_not_used */, double value)
 {
