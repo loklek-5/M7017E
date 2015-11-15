@@ -25,7 +25,7 @@
 #ifdef GDK_WINDOWING_WIN32
 #include <gdk/gdkwin32.h>
 #endif
-#include <gdkmm/window.h>
+
 #include <gstreamermm/bus.h>
 #include <gstreamermm/caps.h>
 #include <gstreamermm/clock.h>
@@ -43,9 +43,9 @@
 #include "player_window.h"
 
 PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
-: m_vbox(false, 8),
+: m_vbox(false, 6),
   m_progress_label("000:00:00.000000000 / 000:00:00.000000000"),
-  //m_volume_label("volume"),
+  m_volume_label("0 / 100"),
   m_play_button(Gtk::Stock::MEDIA_PLAY),
   m_pause_button(Gtk::Stock::MEDIA_PAUSE),
   m_stop_button(Gtk::Stock::MEDIA_STOP),
@@ -55,21 +55,20 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_full_screen_button(Gtk::Stock::FULLSCREEN),
   m_unfull_screen_button(Gtk::Stock::LEAVE_FULLSCREEN),
   m_mute_button("Mute"),
-  m_unmute_button("Unmute"),  
-  m_volume_button()
+  m_unmute_button("Unmute")  
 {
-  //m_volume_button = gtk_volume_button_new();
   set_title("Audio/Video Player ");
 
   add(m_vbox);
   m_vbox.pack_start(m_video_area, Gtk::PACK_EXPAND_WIDGET);
   m_vbox.pack_start(m_progress_label, Gtk::PACK_SHRINK);
+  m_vbox.pack_start(m_volume_label, Gtk::PACK_SHRINK);
   m_vbox.pack_start(m_progress_scale, Gtk::PACK_SHRINK);
-  //m_vbox.pack_start(*m_volume_button, Gtk::PACK_EXPAND_WIDGET,0);
+  m_vbox.pack_start(m_volume_scale, Gtk::PACK_SHRINK);
   m_vbox.pack_start(m_button_box, Gtk::PACK_SHRINK);
-  
 
   m_progress_label.set_alignment(Gtk::ALIGN_CENTER);
+
   m_progress_scale.set_range(0, 1);
   m_progress_scale.set_draw_value(false);
   m_progress_scale.signal_change_value().connect(
@@ -85,8 +84,6 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_button_box.pack_start(m_unfull_screen_button);
   m_button_box.pack_start(m_mute_button);
   m_button_box.pack_start(m_unmute_button);
-  m_button_box.pack_start(m_volume_button);
-  
 
 
   m_play_button.signal_clicked().connect(sigc::mem_fun(*this,
@@ -109,8 +106,7 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
                       &PlayerWindow::on_button_unmute));
   m_unfull_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_unfull_screen));
-  m_volume_button.signal_value_changed().connect(
-    sigc::mem_fun(*this, &PlayerWindow::on_volume_value_changed) );
+
   m_video_area.set_size_request(640, 480);
 
   m_video_area.signal_realize().connect(sigc::mem_fun(*this,
@@ -364,7 +360,6 @@ void PlayerWindow::on_button_unfull_screen()
 }
 void PlayerWindow::on_button_mute()
 {
-  
   //Change the UI appropriately:
   m_mute_button.hide();
   m_unmute_button.show();
@@ -379,7 +374,6 @@ void PlayerWindow::on_button_unmute()
 {
   //Change the UI appropriately:
   //fullscreen();
-  
   m_unmute_button.hide();
   m_mute_button.show();
   m_playbin->set_mute(false);
@@ -401,13 +395,6 @@ bool PlayerWindow::on_scale_value_changed(Gtk::ScrollType /* type_not_used */, d
   }
 }
 
-//handle the volume level
-void PlayerWindow::on_volume_value_changed(double value)
-{
-  
-  m_playbin->set_volume(Gst::STREAM_VOLUME_FORMAT_LINEAR,value);
-
-}
 void PlayerWindow::on_button_rewind()
 {
   static const gint64 skipAmount = Gst::SECOND * 2;

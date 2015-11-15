@@ -18,7 +18,7 @@
 
 #ifndef _PLAYERWINDOW_H
 #define _PLAYERWINDOW_H
-#include <gtk/gtk.h>
+
 #include <gtkmm/window.h>
 #include <gtkmm/drawingarea.h>
 #include <gtkmm/buttonbox.h>
@@ -29,7 +29,6 @@
 #include <gstreamermm/pipeline.h>
 #include <gstreamermm/bus.h>
 #include <gstreamermm/playbin.h>
-#include <gtkmm/volumebutton.h>
 
 class PlayerWindow : public Gtk::Window
 {
@@ -60,7 +59,7 @@ protected:
   void on_button_mute();
   void on_button_unmute();
   bool on_scale_value_changed(Gtk::ScrollType type, double value);
-  void on_volume_value_changed(double value);
+  bool on_volume_value_changed(Gtk::ScrollType type, double value);
   bool on_timeout();
 
   void display_label_progress(gint64 pos, gint64 len);
@@ -70,9 +69,7 @@ protected:
   Gtk::HButtonBox m_button_box;
   Gtk::DrawingArea m_video_area;
   Gtk::Label m_progress_label;
-  Gtk::Label m_volume_label;
   Gtk::HScale m_progress_scale;
-  Gtk::HScale m_volume_scale;
   Gtk::Button m_play_button;
   Gtk::Button m_pause_button;
   Gtk::Button m_stop_button;
@@ -83,10 +80,8 @@ protected:
   Gtk::Button m_unfull_screen_button;
   Gtk::Button m_mute_button;
   Gtk::Button m_unmute_button;
-  //volume Button
-  Gtk::VolumeButton m_volume_button;
-  
-  
+
+
   Glib::RefPtr<Gst::PlayBin> m_playbin;
   sigc::connection m_timeout_connection;
   guint m_watch_id;
