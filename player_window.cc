@@ -1,6 +1,6 @@
 /* gstreamermm-gtkmm-media-player
  *
- * Copyright 2008-2015 krz37, loklek-5, Ornela Barhdi and The gstreamermm Development Team
+ * Copyright 2008-2015 krz37, loklek-5, lelabe and The gstreamermm Development Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
