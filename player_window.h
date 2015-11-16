@@ -1,6 +1,6 @@
-/* gstreamermm - a C++ wrapper for gstreamer
+/* gstreamermm-gtkmm-media-player
  *
- * Copyright 2008 The gstreamermm Development Team
+ * Copyright 2008-2015 krz37, loklek-5, Ornela Barhdi and The gstreamermm Development Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
@@ -49,6 +49,7 @@ protected:
   void on_video_changed();
   Gst::PadProbeReturn on_video_pad_got_buffer(const Glib::RefPtr<Gst::Pad>& pad, const Gst::PadProbeInfo& data);
 
+  //Functions declaration, comments available in the .cc file
   void on_button_play();
   void on_button_pause();
   void on_button_stop();
@@ -66,6 +67,7 @@ protected:
   void display_label_progress(gint64 pos, gint64 len);
 
 protected:
+  ///GUI Elements declaration
   Gtk::VBox m_vbox;
   Gtk::HButtonBox m_button_box;
   Gtk::DrawingArea m_video_area;
@@ -83,10 +85,9 @@ protected:
   Gtk::Button m_unfull_screen_button;
   Gtk::Button m_mute_button;
   Gtk::Button m_unmute_button;
-  //volume Button
   Gtk::VolumeButton m_volume_button;
   
-  
+  ///Gstreamer-related declarations
   Glib::RefPtr<Gst::PlayBin> m_playbin;
   sigc::connection m_timeout_connection;
   guint m_watch_id;

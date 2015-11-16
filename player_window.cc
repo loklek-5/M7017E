@@ -1,6 +1,6 @@
-/* gstreamermm - a C++ wrapper for gstreamer
+/* gstreamermm-gtkmm-media-player
  *
- * Copyright 2008 The gstreamermm Development Team
+ * Copyright 2008-2015 krz37, loklek-5, Ornela Barhdi and The gstreamermm Development Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
@@ -43,9 +43,10 @@
 #include "player_window.h"
 
 PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
-: m_vbox(false, 8),
-  m_progress_label("000:00:00.000000000 / 000:00:00.000000000"),
-  //m_volume_label("volume"),
+: 
+  // Populating the GUI declarations
+  m_vbox(false, 8),
+  m_progress_label("00:00:00 / 00:00:00"),
   m_play_button(Gtk::Stock::MEDIA_PLAY),
   m_pause_button(Gtk::Stock::MEDIA_PAUSE),
   m_stop_button(Gtk::Stock::MEDIA_STOP),
@@ -57,8 +58,9 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_mute_button("Mute"),
   m_unmute_button("Unmute"),  
   m_volume_button()
+  // ----
 {
-  //m_volume_button = gtk_volume_button_new();
+  // Packing the GUI
   set_title("Audio/Video Player ");
 
   add(m_vbox);
@@ -68,12 +70,10 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   //m_vbox.pack_start(*m_volume_button, Gtk::PACK_EXPAND_WIDGET,0);
   m_vbox.pack_start(m_button_box, Gtk::PACK_SHRINK);
   
-
-  m_progress_label.set_alignment(Gtk::ALIGN_CENTER);
+  m_progress_label.set_alignment(2.0);
   m_progress_scale.set_range(0, 1);
   m_progress_scale.set_draw_value(false);
-  m_progress_scale.signal_change_value().connect(
-    sigc::mem_fun(*this, &PlayerWindow::on_scale_value_changed) );
+  m_volume_button.set_value(0.5);
 
   m_button_box.pack_start(m_play_button);
   m_button_box.pack_start(m_pause_button);
@@ -86,8 +86,13 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   m_button_box.pack_start(m_mute_button);
   m_button_box.pack_start(m_unmute_button);
   m_button_box.pack_start(m_volume_button);
-  
+  // ----  
 
+  // Binding the functions to the GUI elements
+  m_progress_scale.signal_change_value().connect(sigc::mem_fun(*this, 
+                      &PlayerWindow::on_scale_value_changed) );
+  m_volume_button.signal_value_changed().connect(sigc::mem_fun(*this,
+                      &PlayerWindow::on_volume_value_changed) );
 
   m_play_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_play));
@@ -109,12 +114,13 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
                       &PlayerWindow::on_button_unmute));
   m_unfull_screen_button.signal_clicked().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_button_unfull_screen));
-  m_volume_button.signal_value_changed().connect(
-    sigc::mem_fun(*this, &PlayerWindow::on_volume_value_changed) );
+
   m_video_area.set_size_request(640, 480);
 
   m_video_area.signal_realize().connect(sigc::mem_fun(*this,
                       &PlayerWindow::on_video_area_realize));
+  // ----
+
 
   // Get the bus from the pipeline:
   Glib::RefPtr<Gst::Bus> bus = playbin->get_bus();
@@ -128,13 +134,12 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   bus->signal_sync_message().connect(
     sigc::mem_fun(*this, &PlayerWindow::on_bus_message_sync));
 
-  //We do not need to listen to the bus anymore
-  //bus->disable_sync_message_emission();
-
   // Add a bus watch to receive messages from the pipeline's bus:
+  // So that we can use them later for drawing gstreamer inour window area
   m_watch_id = bus->add_watch(
     sigc::mem_fun(*this, &PlayerWindow::on_bus_message) );
 
+  // Disable un-usable GUI items
   m_progress_scale.set_sensitive(false);
   m_play_button.set_sensitive(false);
   m_pause_button.set_sensitive(false);
@@ -148,11 +153,12 @@ PlayerWindow::PlayerWindow(const Glib::RefPtr<Gst::PlayBin>& playbin)
   
   m_playbin = playbin;
 
-  //We chose to set the size of the player from the beginning due to a bug of how the overlay is handled
+  //We chose to set the size of the player from the beginning due to a bug of how the overlay is handled so the above goes commented
   //m_playbin->signal_video_changed().connect(
   //  sigc::mem_fun(*this, &PlayerWindow::on_video_changed) );
 
   show_all_children();
+  // Hides un-fit GUI items
   m_pause_button.hide();
   m_unfull_screen_button.hide();
   m_unmute_button.hide();
@@ -189,7 +195,7 @@ void PlayerWindow::on_bus_message_sync(
    GstVideoOverlay *overlay = GST_VIDEO_OVERLAY(GST_MESSAGE_SRC(message->gobj()));
    gst_video_overlay_set_window_handle(overlay,m_x_window_id);
   
-  //Bug in gstreamermm 1.0
+  //Buggy in gstreamermm 1.0, replaced by the line above
   // Glib::RefPtr<Gst::Element> element =
   //     Glib::RefPtr<Gst::Element>::cast_dynamic(message->get_source());
 
@@ -201,7 +207,7 @@ void PlayerWindow::on_bus_message_sync(
   // }
 }
 
-// This function is used to receive asynchronous messages from play_bin's bus
+// This function is used to receive asynchronous messages from play_bin's bus and to handle them according to their type
 bool PlayerWindow::on_bus_message(const Glib::RefPtr<Gst::Bus>& /* bus */,
           const Glib::RefPtr<Gst::Message>& message)
 {
@@ -209,11 +215,13 @@ bool PlayerWindow::on_bus_message(const Glib::RefPtr<Gst::Bus>& /* bus */,
   {
     case Gst::MESSAGE_EOS:
     {
+      // When we reach the end of the stream, we call the same function as the stop button would
       on_button_stop();
       break;
     }
     case Gst::MESSAGE_ERROR:
     {
+      // Error displaying
       Glib::RefPtr<Gst::MessageError> msgError = Glib::RefPtr<Gst::MessageError>::cast_static(message);
       if(msgError)
       {
@@ -236,48 +244,6 @@ bool PlayerWindow::on_bus_message(const Glib::RefPtr<Gst::Bus>& /* bus */,
   return true;
 }
 
-void PlayerWindow::on_video_changed()
-{
-  Glib::RefPtr<Gst::Pad> pad = m_playbin->get_video_pad(0);
-  if(pad)
-  {
-    // Add a buffer probe to the video sink pad which will be removed after
-    // the first buffer is received in the on_video_pad_got_buffer method.
-    // When the first buffer arrives, the video size can be extracted.
-    m_pad_probe_id = pad->add_probe(Gst::PAD_PROBE_TYPE_BUFFER,
-      sigc::mem_fun(*this, &PlayerWindow::on_video_pad_got_buffer));
-  }
-}
-
-Gst::PadProbeReturn PlayerWindow::on_video_pad_got_buffer(const Glib::RefPtr<Gst::Pad>& pad,
-        const Gst::PadProbeInfo& data)
-{
-  int width_value;
-  int height_value;
-
-  Glib::RefPtr<Gst::Caps> caps = pad->query_caps(Glib::RefPtr<Gst::Caps>());
-
-  caps = caps->create_writable();
-
-  const Gst::Structure structure = caps->get_structure(0);
-  if(structure)
-  {
-    structure.get_field("width", width_value);
-    structure.get_field("height", height_value);
-  }
-
-  m_video_area.set_size_request(width_value, height_value);
-
-  // Resize to minimum when first playing by making size
-  // smallest then resizing according to video new size:
-  //resize(1, 1);
-  //check_resize();
-
-  pad->remove_probe(m_pad_probe_id);
-  m_pad_probe_id = 0; // Clear probe id to indicate that it has been removed
-
-  return Gst::PAD_PROBE_OK;
-}
 
 void PlayerWindow::on_button_play()
 {
@@ -348,10 +314,10 @@ void PlayerWindow::on_button_full_screen()
   //Change the UI appropriately:
   m_full_screen_button.hide();
   m_unfull_screen_button.show();
-
-  fullscreen();
   m_unfull_screen_button.set_sensitive();
   m_full_screen_button.set_sensitive(false);
+
+  fullscreen();
 }
 void PlayerWindow::on_button_unfull_screen()
 {
@@ -359,8 +325,9 @@ void PlayerWindow::on_button_unfull_screen()
   //fullscreen();
   m_unfull_screen_button.hide();
   m_full_screen_button.show();
-  unfullscreen();
   m_full_screen_button.set_sensitive();
+
+  unfullscreen();
 }
 void PlayerWindow::on_button_mute()
 {
@@ -368,27 +335,26 @@ void PlayerWindow::on_button_mute()
   //Change the UI appropriately:
   m_mute_button.hide();
   m_unmute_button.show();
+  m_unmute_button.set_sensitive();
+  m_mute_button.set_sensitive(false);
 
   //fullscreen();
   m_playbin->set_mute(true);
-
-  m_unmute_button.set_sensitive();
-  m_mute_button.set_sensitive(false);
 }
 void PlayerWindow::on_button_unmute()
 {
   //Change the UI appropriately:
-  //fullscreen();
-  
   m_unmute_button.hide();
-  m_mute_button.show();
-  m_playbin->set_mute(false);
+  m_mute_button.show();  
   m_mute_button.set_sensitive();
+
+  m_playbin->set_mute(false);
 }
 bool PlayerWindow::on_scale_value_changed(Gtk::ScrollType /* type_not_used */, double value)
 {
   const gint64 newPos = gint64(value * m_duration);
 
+  // Puts the stream to the appropriate point
   if(m_playbin->seek(Gst::FORMAT_TIME, Gst::SEEK_FLAG_FLUSH, newPos))
   {
     display_label_progress(newPos, m_duration);
@@ -400,17 +366,16 @@ bool PlayerWindow::on_scale_value_changed(Gtk::ScrollType /* type_not_used */, d
     return false;
   }
 }
-
 //handle the volume level
 void PlayerWindow::on_volume_value_changed(double value)
 {
-  
   m_playbin->set_volume(Gst::STREAM_VOLUME_FORMAT_LINEAR,value);
-
 }
 void PlayerWindow::on_button_rewind()
 {
   static const gint64 skipAmount = Gst::SECOND * 2;
+
+  // We rewind if we do not fall below 0
 
   gint64 pos = 0;
   Gst::Format fmt = Gst::FORMAT_TIME;
@@ -431,6 +396,10 @@ void PlayerWindow::on_button_rewind()
 
 void PlayerWindow::on_button_forward()
 {
+
+  // Here we use another method through an event and a cast with the playbin
+  // Elese than that, the principle is the same as the previous rewind function but the other way around
+
   static const gint64 skipAmount = Gst::SECOND * 3;
 
   Gst::Format fmt = Gst::FORMAT_TIME;
@@ -494,6 +463,7 @@ void PlayerWindow::on_button_open()
   }
 }
 
+// Handles the position of the stream during the play of the video
 bool PlayerWindow::on_timeout()
 {
   Gst::Format fmt = Gst::FORMAT_TIME;
@@ -515,16 +485,14 @@ void PlayerWindow::display_label_progress(gint64 pos, gint64 len)
   std::ostringstream durationStream (std::ostringstream::out);
 
   locationStream << std::right << std::setfill('0') << 
-    std::setw(3) << Gst::get_hours(pos) << ":" <<
+    std::setw(2) << Gst::get_hours(pos) << ":" <<
     std::setw(2) << Gst::get_minutes(pos) << ":" <<
-    std::setw(2) << Gst::get_seconds(pos) << "." <<
-    std::setw(9) << std::left << Gst::get_fractional_seconds(pos);
+    std::setw(2) << Gst::get_seconds(pos);
 
   durationStream << std::right << std::setfill('0') <<
-    std::setw(3) << Gst::get_hours(len) << ":" <<
+    std::setw(2) << Gst::get_hours(len) << ":" <<
     std::setw(2) << Gst::get_minutes(len) << ":" <<
-    std::setw(2) << Gst::get_seconds(len) << "." <<
-    std::setw(9) << std::left << Gst::get_fractional_seconds(len);
+    std::setw(2) << Gst::get_seconds(len);
 
   m_progress_label.set_text(locationStream.str() + " / " + durationStream.str());
 }
@@ -533,3 +501,46 @@ PlayerWindow::~PlayerWindow()
 {
   m_playbin->get_bus()->remove_watch(m_watch_id);
 }
+
+// void PlayerWindow::on_video_changed()
+// {
+//   Glib::RefPtr<Gst::Pad> pad = m_playbin->get_video_pad(0);
+//   if(pad)
+//   {
+//     // Add a buffer probe to the video sink pad which will be removed after
+//     // the first buffer is received in the on_video_pad_got_buffer method.
+//     // When the first buffer arrives, the video size can be extracted.
+//     m_pad_probe_id = pad->add_probe(Gst::PAD_PROBE_TYPE_BUFFER,
+//       sigc::mem_fun(*this, &PlayerWindow::on_video_pad_got_buffer));
+//   }
+// }
+
+// Gst::PadProbeReturn PlayerWindow::on_video_pad_got_buffer(const Glib::RefPtr<Gst::Pad>& pad,
+//         const Gst::PadProbeInfo& data)
+// {
+//   int width_value;
+//   int height_value;
+
+//   Glib::RefPtr<Gst::Caps> caps = pad->query_caps(Glib::RefPtr<Gst::Caps>());
+
+//   caps = caps->create_writable();
+
+//   const Gst::Structure structure = caps->get_structure(0);
+//   if(structure)
+//   {
+//     structure.get_field("width", width_value);
+//     structure.get_field("height", height_value);
+//   }
+
+//   m_video_area.set_size_request(width_value, height_value);
+
+//   // Resize to minimum when first playing by making size
+//   // smallest then resizing according to video new size:
+//   //resize(1, 1);
+//   //check_resize();
+
+//   pad->remove_probe(m_pad_probe_id);
+//   m_pad_probe_id = 0; // Clear probe id to indicate that it has been removed
+
+//   return Gst::PAD_PROBE_OK;
+// }
